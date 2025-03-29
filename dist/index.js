@@ -44688,6 +44688,7 @@ var __webpack_exports__ = {};
 const core = __nccwpck_require__(7484);
 const github = __nccwpck_require__(3228);
 const { WebClient } = __nccwpck_require__(5105);
+const fs = __nccwpck_require__(9896);
 
 async function run() {
   try {
@@ -44695,12 +44696,14 @@ async function run() {
     const name = core.getInput("name");
     const webhookUrl = core.getInput("Team_webhook");
     const token = core.getInput("github-token");
+    const withAquasec = core.getBooleanInput("with-aquasec");
 
     const octokit = github.getOctokit(token);
     const { owner, repo } = github.context.repo;
 
     // Get all tags
     const { data: tags } = await octokit.rest.repos.listTags({ owner, repo });
+    console.info("All tags:", JSON.stringify(tags));
 
     const tagExists = tags.some((tag) => tag.name === version);
     console.info(`Tag ${version} exists:`, tagExists);
@@ -44762,6 +44765,7 @@ async function run() {
     const mergedPRs = pulls.filter(
       (pr) => pr.merged_at && new Date(pr.merged_at) > secondToLastTagDate
     );
+    console.info("Merged PRs since last tag:", JSON.stringify(mergedPRs));
 
     const changeLog = mergedPRs
       .map(
@@ -44772,7 +44776,7 @@ async function run() {
     console.info("Changelog:", changeLog);
 
     // Create release
-    await octokit.rest.repos.createRelease({
+    const { data: release } = await octokit.rest.repos.createRelease({
       owner,
       repo,
       tag_name: version,
@@ -44781,6 +44785,24 @@ async function run() {
       draft: false,
       prerelease: false,
     });
+
+    // Attach aquasec.txt if withAquasec is true
+    if (withAquasec) {
+      try {
+        const aquasecContent = fs.readFileSync("./aquasec.txt");
+        await octokit.rest.repos.uploadReleaseAsset({
+          owner,
+          repo,
+          release_id: release.id,
+          name: "aquasec.txt",
+          data: aquasecContent,
+        });
+        console.info("aquasec.txt attached to release");
+      } catch (error) {
+        console.error("Failed to attach aquasec.txt:", error.message);
+        core.warning("Could not attach aquasec.txt to release");
+      }
+    }
 
     // Send notification if webhook is provided
     if (webhookUrl) {
