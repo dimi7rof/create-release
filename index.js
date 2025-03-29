@@ -14,7 +14,6 @@ async function run() {
 
     // Get all tags
     const { data: tags } = await octokit.rest.repos.listTags({ owner, repo });
-    console.info("All tags:", JSON.stringify(tags));
 
     const tagExists = tags.some((tag) => tag.name === version);
     console.info(`Tag ${version} exists:`, tagExists);
@@ -76,7 +75,6 @@ async function run() {
     const mergedPRs = pulls.filter(
       (pr) => pr.merged_at && new Date(pr.merged_at) > secondToLastTagDate
     );
-    console.info("Merged PRs since last tag:", JSON.stringify(mergedPRs));
 
     const changeLog = mergedPRs
       .map(
