@@ -14,10 +14,10 @@ async function run() {
 
     // Get all tags
     const { data: tags } = await octokit.rest.repos.listTags({ owner, repo });
-    console.info(tags);
-    console.info(JSON.stringify(tags));
+    console.info("All tags:", JSON.stringify(tags));
+
     const tagExists = tags.some((tag) => tag.name === version);
-    console.info(tagExists);
+    console.info(`Tag ${version} exists:`, tagExists);
 
     if (!tagExists) {
       console.info("Creating tag");
@@ -35,35 +35,48 @@ async function run() {
       return;
     }
 
-    const { data: secondToLastTagInfo } = await octokit.rest.git.getRef({
+    // Get the commit SHA for the second-to-last tag
+    let secondToLastTagSha;
+    const secondToLastTag = tags[1];
+
+    try {
+      // First try to get the tag object (for annotated tags)
+      const { data: tagObject } = await octokit.rest.git.getTag({
+        owner,
+        repo,
+        tag_sha: secondToLastTag.commit.sha,
+      });
+      secondToLastTagSha = tagObject.object.sha;
+    } catch (error) {
+      // If that fails, it's probably a lightweight tag - use the commit SHA directly
+      console.info("Tag is not annotated, using commit SHA directly");
+      secondToLastTagSha = secondToLastTag.commit.sha;
+    }
+
+    // Get the commit information
+    const { data: commitInfo } = await octokit.rest.repos.getCommit({
       owner,
       repo,
-      ref: `tags/${tags[1].name}`,
+      ref: secondToLastTagSha,
     });
-    console.info(JSON.stringify(secondToLastTagInfo));
 
-    const { data: commitInfo } = await octokit.rest.git.getCommit({
-      owner,
-      repo,
-      commit_sha: secondToLastTagInfo.object.sha,
-    });
-    console.info(JSON.stringify(commitInfo));
+    const secondToLastTagDate = new Date(commitInfo.commit.committer.date);
+    console.info("Second to last tag date:", secondToLastTagDate);
 
-    const secondToLastTagDate = new Date(commitInfo.committer.date);
-    console.info(secondToLastTagDate);
-
+    // Get merged PRs since the second-to-last tag
     const { data: pulls } = await octokit.rest.pulls.list({
       owner,
       repo,
       state: "closed",
+      sort: "updated",
+      direction: "desc",
       per_page: 100,
     });
-    console.info(JSON.stringify(pulls));
 
     const mergedPRs = pulls.filter(
       (pr) => pr.merged_at && new Date(pr.merged_at) > secondToLastTagDate
-    ); // Only merged PRs after the second-to-last tag
-    console.info(JSON.stringify(mergedPRs));
+    );
+    console.info("Merged PRs since last tag:", JSON.stringify(mergedPRs));
 
     const changeLog = mergedPRs
       .map(
@@ -71,7 +84,7 @@ async function run() {
           `- ${pr.title} by @${pr.user.login} in [#${pr.number}](${pr.html_url})`
       )
       .join("\n");
-    console.info(changeLog);
+    console.info("Changelog:", changeLog);
 
     // Create release
     await octokit.rest.repos.createRelease({
@@ -94,6 +107,7 @@ async function run() {
     }
   } catch (error) {
     core.setFailed(error.message);
+    console.error("Full error:", error);
   }
 }
 
