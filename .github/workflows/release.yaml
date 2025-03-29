@@ -1,0 +1,24 @@
+name: Release Automation
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: "Project name"
+        required: true
+      version:
+        description: "Release version"
+        required: true
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run release action
+        uses: ./action
+        with:
+          name: ${{ inputs.name }}
+          version: ${{ inputs.version }}
+          Team_webhook: ${{ secrets.TEAM_WEBHOOK }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

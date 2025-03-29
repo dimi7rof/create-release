@@ -1,0 +1,18 @@
+name: "GitHub Release & Notification"
+description: "Creates a release and sends a team notification"
+inputs:
+  version:
+    description: "Release version"
+    required: true
+  name:
+    description: "Project name"
+    required: true
+  Team_webhook:
+    description: "Slack/Webhook URL"
+    required: true
+  github-token:
+    description: "GitHub token"
+    required: true
+runs:
+  using: "node22"
+  main: "index.js"

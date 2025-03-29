@@ -1,0 +1,15 @@
+{
+  "name": "github-release-action",
+  "version": "1.0.0",
+  "description": "A GitHub Action to create releases and notify teams",
+  "main": "index.js",
+  "dependencies": {
+    "@actions/core": "^1.10.0",
+    "@actions/github": "^6.0.0",
+    "@slack/web-api": "^6.9.1"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  }
+}
