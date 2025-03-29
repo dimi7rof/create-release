@@ -44705,7 +44705,13 @@ async function run() {
     const { data: tags } = await octokit.rest.repos.listTags({ owner, repo });
     console.info("All tags:", JSON.stringify(tags));
 
-    const tagExists = tags.some((tag) => tag.name === version);
+    // Sort tags by date (descending) to ensure correct order
+    const sortedTags = tags.sort(
+      (a, b) =>
+        new Date(b.commit.committer.date) - new Date(a.commit.committer.date)
+    );
+
+    const tagExists = sortedTags.some((tag) => tag.name === version);
     console.info(`Tag ${version} exists:`, tagExists);
 
     if (!tagExists) {
@@ -44719,14 +44725,14 @@ async function run() {
     }
 
     // Get last two tags
-    if (tags.length < 2) {
+    if (sortedTags.length < 2) {
       core.setFailed("Not enough tags to generate changelog");
       return;
     }
 
     // Get the commit SHA for the second-to-last tag
     let secondToLastTagSha;
-    const secondToLastTag = tags[1];
+    const secondToLastTag = sortedTags[1];
 
     try {
       // First try to get the tag object (for annotated tags)
@@ -44787,7 +44793,9 @@ async function run() {
     });
 
     // Attach aquasec.txt if withAquasec is true
-    if (withAquasec) {
+    if (withAquasec && !fs.existsSync("./aquasec.txt")) {
+      core.warning("aquasec.txt file not found, skipping attachment");
+    } else if (withAquasec) {
       try {
         const aquasecContent = fs.readFileSync("./aquasec.txt");
         await octokit.rest.repos.uploadReleaseAsset({
