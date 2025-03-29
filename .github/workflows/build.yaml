@@ -1,0 +1,37 @@
+name: Build and Bundle Action
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    tags:
+      - v*
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build action
+        run: ncc build index.js -o dist
+
+      - name: Commit built files (if main branch)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          git add dist
+          git commit -m "Build action on push"
+          git push origin main
