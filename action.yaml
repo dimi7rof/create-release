@@ -1,5 +1,7 @@
 name: "GitHub Release & Notification"
 description: "Automate GitHub releases, changelogs, file attachments, and Teams notifications for your project."
+icon: "book-open"
+color: "green"
 inputs:
   version:
     description: "Release version"
