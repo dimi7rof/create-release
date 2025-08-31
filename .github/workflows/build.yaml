@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag to create and push after build"
-        required: false
+        description: "Tag to push after build (e.g., v1)"
+        required: true
 
 jobs:
   build:
@@ -36,7 +36,6 @@ jobs:
           git push origin main
 
       - name: Create and push tag
-        if: ${{ github.event.inputs.tag != '' }}
         run: |
           git tag ${{ github.event.inputs.tag }}
           git push origin ${{ github.event.inputs.tag }}
