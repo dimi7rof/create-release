@@ -18,11 +18,22 @@ async function run() {
     const { data: tags } = await octokit.rest.repos.listTags({ owner, repo });
     console.info("All tags:", JSON.stringify(tags));
 
-    // Sort tags by date (descending) to ensure correct order
-    const sortedTags = tags.sort(
-      (a, b) =>
-        new Date(b.commit.committer.date) - new Date(a.commit.committer.date)
-    );
+    // Helper to get tag date safely
+    function getTagDate(tag) {
+      if (tag.commit && tag.commit.committer && tag.commit.committer.date) {
+        return new Date(tag.commit.committer.date);
+      }
+      if (tag.commit && tag.commit.author && tag.commit.author.date) {
+        return new Date(tag.commit.author.date);
+      }
+      return null;
+    }
+
+    // Filter out tags without a valid date, then sort
+    const sortedTags = tags
+      .map((tag) => ({ ...tag, _tagDate: getTagDate(tag) }))
+      .filter((tag) => tag._tagDate)
+      .sort((a, b) => b._tagDate - a._tagDate);
 
     const tagExists = sortedTags.some((tag) => tag.name === version);
     console.info(`Tag ${version} exists:`, tagExists);
