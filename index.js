@@ -35,7 +35,7 @@ async function run() {
       .filter((tag) => tag._tagDate)
       .sort((a, b) => b._tagDate - a._tagDate);
 
-    const tagExists = sortedTags.some((tag) => tag.name === version);
+    const tagExists = tags.some((tag) => tag.name === version);
     console.info(`Tag ${version} exists:`, tagExists);
 
     if (!tagExists) {
