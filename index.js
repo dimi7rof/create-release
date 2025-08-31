@@ -1,6 +1,6 @@
 import { getInput, setFailed, warning } from "@actions/core";
 import { getOctokit, context } from "@actions/github";
-import { WebClient } from "@slack/web-api";
+import https from "https";
 import { existsSync, readFileSync } from "fs";
 
 async function run() {
@@ -33,14 +33,20 @@ async function run() {
     async function enrichTagWithCommit(tag) {
       if (tag.commit) return tag;
       try {
+        const commitSha = tag.commit ? tag.commit.sha : tag.sha || tag.name;
         const { data: commit } = await octokit.rest.git.getCommit({
           owner,
           repo,
-          commit_sha: tag.commit ? tag.commit.sha : tag.sha || tag.name,
+          commit_sha: commitSha,
         });
         return { ...tag, commit };
       } catch (e) {
-        // Could not fetch commit info, skip this tag
+        console.warn(
+          `Could not fetch commit info for tag '${tag.name}'. commit_sha: ${
+            tag.commit ? tag.commit.sha : tag.sha || tag.name
+          }`
+        );
+        console.warn(`Error: ${e.message}`);
         return null;
       }
     }
@@ -214,13 +220,36 @@ async function run() {
       }
     }
 
-    // Send notification if webhook is provided
+    // Send notification if webhook is provided (Microsoft Teams)
     if (webhookUrl) {
-      const slack = new WebClient(webhookUrl);
-      await slack.chat.postMessage({
-        text: `New release:\n\n*${name}:${version}*\n\n${changeLog}`,
-        channel: "#team-notifications",
+      const teamsPayload = JSON.stringify({
+        "@type": "MessageCard",
+        "@context": "http://schema.org/extensions",
+        summary: `New release: ${name} ${version}`,
+        themeColor: "0076D7",
+        title: `New release: ${name} ${version}`,
+        text: changeLog || "No changelog available.",
       });
+      const url = new URL(webhookUrl);
+      const options = {
+        hostname: url.hostname,
+        path: url.pathname + url.search,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(teamsPayload),
+        },
+      };
+      await new Promise((resolve, reject) => {
+        const req = https.request(options, (res) => {
+          res.on("data", () => {});
+          res.on("end", resolve);
+        });
+        req.on("error", reject);
+        req.write(teamsPayload);
+        req.end();
+      });
+      console.info("Teams notification sent.");
     }
   } catch (error) {
     setFailed(error.message);
