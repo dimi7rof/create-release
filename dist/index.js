@@ -31897,7 +31897,7 @@ async function run() {
 
     // Get all tags
     const { data: tags } = await octokit.rest.repos.listTags({ owner, repo });
-    console.info("All tags:", JSON.stringify(tags));
+    console.debug("All tags:", JSON.stringify(tags));
 
     // Helper to get tag date safely
     function getTagDate(tag) {
@@ -31934,7 +31934,7 @@ async function run() {
     // Fetch commit info for tags missing it or with incomplete commit info
     const tagsWithCommits = [];
     for (const tag of tags) {
-      console.info("Tag:", JSON.stringify(tag));
+      console.debug("Tag:", JSON.stringify(tag));
       let needsEnrich = false;
       if (!tag.commit) {
         needsEnrich = true;
@@ -31945,7 +31945,7 @@ async function run() {
       if (needsEnrich) {
         const enriched = await enrichTagWithCommit(tag);
         if (enriched) tagsWithCommits.push(enriched);
-        console.info("Enriched:", JSON.stringify(enriched));
+        console.debug("Enriched:", JSON.stringify(enriched));
       } else {
         tagsWithCommits.push(tag);
       }
@@ -31956,7 +31956,7 @@ async function run() {
       .map((tag) => ({ ...tag, _tagDate: getTagDate(tag) }))
       .filter((tag) => tag._tagDate)
       .sort((a, b) => b._tagDate - a._tagDate);
-    console.info("Sorted Tags:", JSON.stringify(sortedTags));
+    console.debug("Sorted Tags:", JSON.stringify(sortedTags));
 
     const tagExists = tags.some((tag) => tag.name === version);
     console.info(`Tag ${version} exists:`, tagExists);
