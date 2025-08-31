@@ -29,9 +29,35 @@ async function run() {
       return null;
     }
 
-    // Filter out tags without a commit or a valid date, then sort
-    const sortedTags = tags
-      .filter((tag) => tag.commit)
+    // Ensure all tags have commit info (fetch if missing)
+    async function enrichTagWithCommit(tag) {
+      if (tag.commit) return tag;
+      try {
+        const { data: commit } = await octokit.rest.git.getCommit({
+          owner,
+          repo,
+          commit_sha: tag.commit ? tag.commit.sha : tag.sha || tag.name,
+        });
+        return { ...tag, commit };
+      } catch (e) {
+        // Could not fetch commit info, skip this tag
+        return null;
+      }
+    }
+
+    // Fetch commit info for tags missing it
+    const tagsWithCommits = [];
+    for (const tag of tags) {
+      if (tag.commit) {
+        tagsWithCommits.push(tag);
+      } else {
+        const enriched = await enrichTagWithCommit(tag);
+        if (enriched) tagsWithCommits.push(enriched);
+      }
+    }
+
+    // Now filter and sort as before
+    const sortedTags = tagsWithCommits
       .map((tag) => ({ ...tag, _tagDate: getTagDate(tag) }))
       .filter((tag) => tag._tagDate)
       .sort((a, b) => b._tagDate - a._tagDate);
