@@ -48,76 +48,86 @@ async function run() {
       });
     }
 
-    // Get last two tags
-    if (sortedTags.length < 2) {
-      setFailed("Not enough tags to generate changelog");
-      return;
-    }
-
-    // Get the commit SHA for the second-to-last tag
-    let secondToLastTagSha;
-    const secondToLastTag = sortedTags[1];
-
-    try {
-      // First try to get the tag object (for annotated tags)
-      const { data: tagObject } = await octokit.rest.git.getTag({
+    let secondToLastTagSha = null;
+    let secondToLastTagDate = null;
+    if (sortedTags.length >= 2) {
+      // Get the commit SHA for the second-to-last tag
+      const secondToLastTag = sortedTags[1];
+      try {
+        // First try to get the tag object (for annotated tags)
+        const { data: tagObject } = await octokit.rest.git.getTag({
+          owner,
+          repo,
+          tag_sha: secondToLastTag.commit.sha,
+        });
+        secondToLastTagSha = tagObject.object.sha;
+      } catch (error) {
+        // If that fails, it's probably a lightweight tag - use the commit SHA directly
+        console.info("Tag is not annotated, using commit SHA directly");
+        secondToLastTagSha = secondToLastTag.commit.sha;
+      }
+      // Get the commit information
+      const { data: commitInfo } = await octokit.rest.repos.getCommit({
         owner,
         repo,
-        tag_sha: secondToLastTag.commit.sha,
+        ref: secondToLastTagSha,
       });
-      secondToLastTagSha = tagObject.object.sha;
-    } catch (error) {
-      // If that fails, it's probably a lightweight tag - use the commit SHA directly
-      console.info("Tag is not annotated, using commit SHA directly");
-      secondToLastTagSha = secondToLastTag.commit.sha;
+      secondToLastTagDate = new Date(commitInfo.commit.committer.date);
+      console.info("Second to last tag date:", secondToLastTagDate);
     }
-
-    // Get the commit information
-    const { data: commitInfo } = await octokit.rest.repos.getCommit({
-      owner,
-      repo,
-      ref: secondToLastTagSha,
-    });
-
-    const secondToLastTagDate = new Date(commitInfo.commit.committer.date);
-    console.info("Second to last tag date:", secondToLastTagDate);
-
-    // Get merged PRs since the second-to-last tag
-    const { data: pulls } = await octokit.rest.pulls.list({
-      owner,
-      repo,
-      state: "closed",
-      sort: "updated",
-      direction: "desc",
-      per_page: 100,
-    });
-
-    const mergedPRs = pulls.filter(
-      (pr) => pr.merged_at && new Date(pr.merged_at) > secondToLastTagDate
-    );
-    console.info("Merged PRs since last tag:", JSON.stringify(mergedPRs));
 
     let changeLog = "";
-    if (mergedPRs.length > 0) {
-      changeLog = mergedPRs
-        .map(
-          (pr) =>
-            `- ${pr.title} by @${pr.user.login} in [#${pr.number}](${pr.html_url})`
-        )
-        .join("\n");
-      console.info("Changelog (PRs):", changeLog);
-    } else {
-      // No merged PRs, use commit messages between the last two tags
-      const lastTagSha = sortedTags[0].commit.sha;
-      const prevTagSha = secondToLastTagSha;
-      // Get commits between prevTagSha (exclusive) and lastTagSha (inclusive)
-      const { data: commits } = await octokit.rest.repos.compareCommits({
+    const lastTagSha = sortedTags[0].commit.sha;
+    if (secondToLastTagDate) {
+      // Get merged PRs since the second-to-last tag
+      const { data: pulls } = await octokit.rest.pulls.list({
         owner,
         repo,
-        base: prevTagSha,
-        head: lastTagSha,
+        state: "closed",
+        sort: "updated",
+        direction: "desc",
+        per_page: 100,
       });
-      changeLog = commits.commits
+      const mergedPRs = pulls.filter(
+        (pr) => pr.merged_at && new Date(pr.merged_at) > secondToLastTagDate
+      );
+      console.info("Merged PRs since last tag:", JSON.stringify(mergedPRs));
+      if (mergedPRs.length > 0) {
+        changeLog = mergedPRs
+          .map(
+            (pr) =>
+              `- ${pr.title} by @${pr.user.login} in [#${pr.number}](${pr.html_url})`
+          )
+          .join("\n");
+        console.info("Changelog (PRs):", changeLog);
+      } else {
+        // No merged PRs, use commit messages between the last two tags
+        const prevTagSha = secondToLastTagSha;
+        // Get commits between prevTagSha (exclusive) and lastTagSha (inclusive)
+        const { data: commits } = await octokit.rest.repos.compareCommits({
+          owner,
+          repo,
+          base: prevTagSha,
+          head: lastTagSha,
+        });
+        changeLog = commits.commits
+          .map(
+            (commit) =>
+              `- ${
+                commit.commit.message.split("\n")[0]
+              } (${commit.sha.substring(0, 7)})`
+          )
+          .join("\n");
+        console.info("Changelog (commits):", changeLog);
+      }
+    } else {
+      // Only one valid tag, use all commits up to that tag
+      const { data: commits } = await octokit.rest.repos.listCommits({
+        owner,
+        repo,
+        sha: lastTagSha,
+      });
+      changeLog = commits
         .map(
           (commit) =>
             `- ${commit.commit.message.split("\n")[0]} (${commit.sha.substring(
@@ -126,7 +136,7 @@ async function run() {
             )})`
         )
         .join("\n");
-      console.info("Changelog (commits):", changeLog);
+      console.info("Changelog (commits, single tag):", changeLog);
     }
 
     // Create release

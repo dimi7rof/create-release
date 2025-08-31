@@ -1,5 +1,11 @@
 name: "GitHub Release & Notification"
-description: "Creates a release and sends a team notification"
+description: |
+  This action automates GitHub releases:
+  - Creates a release for a specified tag (creates the tag if needed)
+  - Generates a changelog from merged PRs or commit messages between tags
+  - Attaches specified files to the release (optional)
+  - Optionally sends a Slack notification to a team channel
+  Handles edge cases like missing tags or PRs, and always provides a changelog.
 inputs:
   version:
     description: "Release version"
