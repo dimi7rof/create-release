@@ -9,7 +9,7 @@ inputs:
     required: true
   Team_webhook:
     description: "Slack/Webhook URL"
-    required: true
+    required: false
   github-token:
     description: "GitHub token"
     required: true
