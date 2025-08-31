@@ -86,13 +86,37 @@ async function run() {
     );
     console.info("Merged PRs since last tag:", JSON.stringify(mergedPRs));
 
-    const changeLog = mergedPRs
-      .map(
-        (pr) =>
-          `- ${pr.title} by @${pr.user.login} in [#${pr.number}](${pr.html_url})`
-      )
-      .join("\n");
-    console.info("Changelog:", changeLog);
+    let changeLog = "";
+    if (mergedPRs.length > 0) {
+      changeLog = mergedPRs
+        .map(
+          (pr) =>
+            `- ${pr.title} by @${pr.user.login} in [#${pr.number}](${pr.html_url})`
+        )
+        .join("\n");
+      console.info("Changelog (PRs):", changeLog);
+    } else {
+      // No merged PRs, use commit messages between the last two tags
+      const lastTagSha = sortedTags[0].commit.sha;
+      const prevTagSha = secondToLastTagSha;
+      // Get commits between prevTagSha (exclusive) and lastTagSha (inclusive)
+      const { data: commits } = await octokit.rest.repos.compareCommits({
+        owner,
+        repo,
+        base: prevTagSha,
+        head: lastTagSha,
+      });
+      changeLog = commits.commits
+        .map(
+          (commit) =>
+            `- ${commit.commit.message.split("\n")[0]} (${commit.sha.substring(
+              0,
+              7
+            )})`
+        )
+        .join("\n");
+      console.info("Changelog (commits):", changeLog);
+    }
 
     // Create release
     const { data: release } = await octokit.rest.repos.createRelease({
