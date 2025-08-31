@@ -29,8 +29,9 @@ async function run() {
       return null;
     }
 
-    // Filter out tags without a valid date, then sort
+    // Filter out tags without a commit or a valid date, then sort
     const sortedTags = tags
+      .filter((tag) => tag.commit)
       .map((tag) => ({ ...tag, _tagDate: getTagDate(tag) }))
       .filter((tag) => tag._tagDate)
       .sort((a, b) => b._tagDate - a._tagDate);
@@ -77,7 +78,15 @@ async function run() {
     }
 
     let changeLog = "";
-    const lastTagSha = sortedTags[0].commit.sha;
+    if (!sortedTags.length) {
+      setFailed("No valid tags with commit information found.");
+      return;
+    }
+    const lastTagSha = sortedTags[0].commit && sortedTags[0].commit.sha;
+    if (!lastTagSha) {
+      setFailed("Latest tag does not have a commit SHA.");
+      return;
+    }
     if (secondToLastTagDate) {
       // Get merged PRs since the second-to-last tag
       const { data: pulls } = await octokit.rest.pulls.list({
