@@ -7706,13 +7706,23 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -7726,7 +7736,7 @@ var __await = (this && this.__await) || function (v) { return this instanceof __
 var __asyncGenerator = (this && this.__asyncGenerator) || function (thisArg, _arguments, generator) {
     if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
     var g = generator.apply(thisArg, _arguments || []), i, q = [];
-    return i = {}, verb("next"), verb("throw"), verb("return", awaitReturn), i[Symbol.asyncIterator] = function () { return this; }, i;
+    return i = Object.create((typeof AsyncIterator === "function" ? AsyncIterator : Object).prototype), verb("next"), verb("throw"), verb("return", awaitReturn), i[Symbol.asyncIterator] = function () { return this; }, i;
     function awaitReturn(f) { return function (v) { return Promise.resolve(v).then(f, reject); }; }
     function verb(n, f) { if (g[n]) { i[n] = function (v) { return new Promise(function (a, b) { q.push([n, v, a, b]) > 1 || resume(n, v); }); }; if (f) i[n] = f(i[n]); } }
     function resume(n, v) { try { step(g[n](v)); } catch (e) { settle(q[0][3], e); } }
@@ -7746,7 +7756,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.buildThreadTsWarningMessage = exports.WebClient = exports.WebClientEvent = void 0;
+exports.WebClient = exports.WebClientEvent = void 0;
+exports.buildThreadTsWarningMessage = buildThreadTsWarningMessage;
 const node_path_1 = __nccwpck_require__(6760);
 const node_querystring_1 = __nccwpck_require__(1792);
 const node_util_1 = __nccwpck_require__(7975);
@@ -7806,6 +7817,9 @@ class WebClient extends methods_1.Methods {
         super();
         this.token = token;
         this.slackApiUrl = slackApiUrl;
+        if (!this.slackApiUrl.endsWith('/')) {
+            this.slackApiUrl += '/';
+        }
         this.retryConfig = retryConfig;
         this.requestQueue = new p_queue_1.default({ concurrency: maxRequestConcurrency });
         // NOTE: may want to filter the keys to only those acceptable for TLS options
@@ -7829,7 +7843,7 @@ class WebClient extends methods_1.Methods {
         this.axios = axios_1.default.create({
             adapter: adapter ? (config) => adapter(Object.assign(Object.assign({}, config), { adapter: undefined })) : undefined,
             timeout,
-            baseURL: slackApiUrl,
+            baseURL: this.slackApiUrl,
             headers: (0, is_electron_1.default)() ? headers : Object.assign({ 'User-Agent': (0, instrument_1.getUserAgent)() }, headers),
             httpAgent: agent,
             httpsAgent: agent,
@@ -7856,8 +7870,8 @@ class WebClient extends methods_1.Methods {
      * @param method - the Web API method to call {@link https://api.slack.com/methods}
      * @param options - options
      */
-    apiCall(method, options = {}) {
-        return __awaiter(this, void 0, void 0, function* () {
+    apiCall(method_1) {
+        return __awaiter(this, arguments, void 0, function* (method, options = {}) {
             this.logger.debug(`apiCall('${method}') start`);
             warnDeprecations(method, this.logger);
             warnIfFallbackIsMissing(method, this.logger, options);
@@ -8099,8 +8113,8 @@ class WebClient extends methods_1.Methods {
     /**
      * Low-level function to make a single API request. handles queuing, retries, and http-level errors
      */
-    makeRequest(url, body, headers = {}) {
-        return __awaiter(this, void 0, void 0, function* () {
+    makeRequest(url_1, body_1) {
+        return __awaiter(this, arguments, void 0, function* (url, body, headers = {}) {
             // TODO: better input types - remove any
             const task = () => this.requestQueue.add(() => __awaiter(this, void 0, void 0, function* () {
                 try {
@@ -8436,7 +8450,6 @@ function warnIfThreadTsIsNotString(method, logger, options) {
 function buildThreadTsWarningMessage(method) {
     return `The given thread_ts value in the request payload for a ${method} call is a float value. We highly recommend using a string value instead.`;
 }
-exports.buildThreadTsWarningMessage = buildThreadTsWarningMessage;
 /**
  * Takes an object and redacts specific items
  * @param body
@@ -8482,7 +8495,12 @@ function redact(body) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.rateLimitedErrorWithDelay = exports.platformErrorFromResult = exports.httpErrorFromResponse = exports.requestErrorWithOriginal = exports.errorWithCode = exports.ErrorCode = void 0;
+exports.ErrorCode = void 0;
+exports.errorWithCode = errorWithCode;
+exports.requestErrorWithOriginal = requestErrorWithOriginal;
+exports.httpErrorFromResponse = httpErrorFromResponse;
+exports.platformErrorFromResult = platformErrorFromResult;
+exports.rateLimitedErrorWithDelay = rateLimitedErrorWithDelay;
 /**
  * A dictionary of codes for errors produced by this package
  */
@@ -8506,7 +8524,6 @@ function errorWithCode(error, code) {
     codedError.code = code;
     return codedError;
 }
-exports.errorWithCode = errorWithCode;
 /**
  * A factory to create WebAPIRequestError objects
  * @param original - original error
@@ -8519,7 +8536,6 @@ function requestErrorWithOriginal(original, attachOriginal) {
     }
     return error;
 }
-exports.requestErrorWithOriginal = requestErrorWithOriginal;
 /**
  * A factory to create WebAPIHTTPError objects
  * @param response - original error
@@ -8538,7 +8554,6 @@ function httpErrorFromResponse(response) {
     error.body = response.data;
     return error;
 }
-exports.httpErrorFromResponse = httpErrorFromResponse;
 /**
  * A factory to create WebAPIPlatformError objects
  * @param result - Web API call result
@@ -8548,7 +8563,6 @@ function platformErrorFromResult(result) {
     error.data = result;
     return error;
 }
-exports.platformErrorFromResult = platformErrorFromResult;
 /**
  * A factory to create WebAPIRateLimitedError objects
  * @param retrySec - Number of seconds that the request can be retried in
@@ -8558,7 +8572,6 @@ function rateLimitedErrorWithDelay(retrySec) {
     error.retryAfter = retrySec;
     return error;
 }
-exports.rateLimitedErrorWithDelay = rateLimitedErrorWithDelay;
 //# sourceMappingURL=errors.js.map
 
 /***/ }),
@@ -8578,13 +8591,35 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.buildInvalidFilesUploadParamError = exports.buildMultipleChannelsErrorMsg = exports.buildChannelsWarning = exports.buildFilesUploadMissingMessage = exports.buildGeneralFilesUploadWarning = exports.buildLegacyMethodWarning = exports.buildMissingExtensionWarning = exports.buildMissingFileNameWarning = exports.buildLegacyFileTypeWarning = exports.buildFileSizeErrorMsg = exports.buildMissingFileIdError = exports.warnIfLegacyFileType = exports.warnIfMissingOrInvalidFileNameAndDefault = exports.errorIfInvalidOrMissingFileData = exports.errorIfChannelsCsv = exports.warnIfChannels = exports.warnIfNotUsingFilesUploadV2 = exports.getAllFileUploadsToComplete = exports.getFileDataAsStream = exports.getFileDataLength = exports.getFileData = exports.getMultipleFileUploadJobs = exports.getFileUploadJob = void 0;
+exports.getFileUploadJob = getFileUploadJob;
+exports.getMultipleFileUploadJobs = getMultipleFileUploadJobs;
+exports.getFileData = getFileData;
+exports.getFileDataLength = getFileDataLength;
+exports.getFileDataAsStream = getFileDataAsStream;
+exports.getAllFileUploadsToComplete = getAllFileUploadsToComplete;
+exports.warnIfNotUsingFilesUploadV2 = warnIfNotUsingFilesUploadV2;
+exports.warnIfChannels = warnIfChannels;
+exports.errorIfChannelsCsv = errorIfChannelsCsv;
+exports.errorIfInvalidOrMissingFileData = errorIfInvalidOrMissingFileData;
+exports.warnIfMissingOrInvalidFileNameAndDefault = warnIfMissingOrInvalidFileNameAndDefault;
+exports.warnIfLegacyFileType = warnIfLegacyFileType;
+exports.buildMissingFileIdError = buildMissingFileIdError;
+exports.buildFileSizeErrorMsg = buildFileSizeErrorMsg;
+exports.buildLegacyFileTypeWarning = buildLegacyFileTypeWarning;
+exports.buildMissingFileNameWarning = buildMissingFileNameWarning;
+exports.buildMissingExtensionWarning = buildMissingExtensionWarning;
+exports.buildLegacyMethodWarning = buildLegacyMethodWarning;
+exports.buildGeneralFilesUploadWarning = buildGeneralFilesUploadWarning;
+exports.buildFilesUploadMissingMessage = buildFilesUploadMissingMessage;
+exports.buildChannelsWarning = buildChannelsWarning;
+exports.buildMultipleChannelsErrorMsg = buildMultipleChannelsErrorMsg;
+exports.buildInvalidFilesUploadParamError = buildInvalidFilesUploadParamError;
 const node_fs_1 = __nccwpck_require__(3024);
 const node_stream_1 = __nccwpck_require__(7075);
 const errors_1 = __nccwpck_require__(8486);
 function getFileUploadJob(options, logger) {
-    var _a, _b, _c, _d;
     return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b, _c, _d;
         // Validate parameters
         warnIfLegacyFileType(options, logger);
         warnIfChannels(options, logger);
@@ -8595,6 +8630,7 @@ function getFileUploadJob(options, logger) {
         const fileUploadJob = {
             // supplied by user
             alt_text: options.alt_text,
+            blocks: options.blocks,
             channel_id: (_a = options.channels) !== null && _a !== void 0 ? _a : options.channel_id,
             filename: (_b = options.filename) !== null && _b !== void 0 ? _b : fileName,
             initial_comment: options.initial_comment,
@@ -8619,7 +8655,6 @@ function getFileUploadJob(options, logger) {
         throw (0, errors_1.errorWithCode)(new Error('Either a file or content field is required for valid file upload. You must supply one'), errors_1.ErrorCode.FileUploadInvalidArgumentsError);
     });
 }
-exports.getFileUploadJob = getFileUploadJob;
 /**
  * Returns an array of files upload entries when `file_uploads` is supplied.
  * **Note**
@@ -8653,13 +8688,13 @@ function getMultipleFileUploadJobs(options, logger) {
                 // ensure no omitted properties included in files_upload entry
                 // these properties are valid only at the top-level, not
                 // inside file_uploads.
-                const { channel_id, channels, initial_comment, thread_ts } = upload;
-                if (channel_id || channels || initial_comment || thread_ts) {
+                const { blocks, channel_id, channels, initial_comment, thread_ts } = upload;
+                if (blocks || channel_id || channels || initial_comment || thread_ts) {
                     throw (0, errors_1.errorWithCode)(new Error(buildInvalidFilesUploadParamError()), errors_1.ErrorCode.FileUploadInvalidArgumentsError);
                 }
                 // takes any channel_id, initial_comment and thread_ts
                 // supplied at the top level.
-                const uploadJobArgs = Object.assign(Object.assign({}, upload), { channels: options.channels, channel_id: options.channel_id, initial_comment: options.initial_comment });
+                const uploadJobArgs = Object.assign(Object.assign({}, upload), { blocks: options.blocks, channels: options.channels, channel_id: options.channel_id, initial_comment: options.initial_comment });
                 if ('thread_ts' in options) {
                     uploadJobArgs.thread_ts = options.thread_ts;
                 }
@@ -8678,7 +8713,6 @@ function getMultipleFileUploadJobs(options, logger) {
         throw new Error(buildFilesUploadMissingMessage());
     });
 }
-exports.getMultipleFileUploadJobs = getMultipleFileUploadJobs;
 // Helpers to build the FileUploadJob
 /**
  * Returns a single file upload's data
@@ -8715,23 +8749,21 @@ function getFileData(options) {
         throw (0, errors_1.errorWithCode)(new Error('There was an issue getting the file data for the file or content supplied'), errors_1.ErrorCode.FileUploadReadFileDataError);
     });
 }
-exports.getFileData = getFileData;
 function getFileDataLength(data) {
     if (data) {
         return Buffer.byteLength(data, 'utf8');
     }
     throw (0, errors_1.errorWithCode)(new Error(buildFileSizeErrorMsg()), errors_1.ErrorCode.FileUploadReadFileDataError);
 }
-exports.getFileDataLength = getFileDataLength;
 function getFileDataAsStream(readable) {
     return __awaiter(this, void 0, void 0, function* () {
         const chunks = [];
         return new Promise((resolve, reject) => {
             readable.on('readable', () => {
-                let chunk;
-                // biome-ignore lint/suspicious/noAssignInExpressions: being terse, this is OK
-                while ((chunk = readable.read()) !== null) {
+                let chunk = readable.read();
+                while (chunk !== null) {
                     chunks.push(chunk);
+                    chunk = readable.read();
                 }
             });
             readable.on('end', () => {
@@ -8746,10 +8778,9 @@ function getFileDataAsStream(readable) {
         });
     });
 }
-exports.getFileDataAsStream = getFileDataAsStream;
 /**
  * Filters through all fileUploads and groups them into jobs for completion
- * based on combination of channel_id, thread_ts, initial_comment.
+ * based on combination of channel_id, thread_ts, initial_comment, blocks.
  * {@link https://api.slack.com/methods/files.completeUploadExternal files.completeUploadExternal} allows for multiple
  * files to be uploaded with a message (`initial_comment`), and as a threaded message (`thread_ts`)
  * In order to be grouped together, file uploads must have like properties.
@@ -8759,17 +8790,22 @@ exports.getFileDataAsStream = getFileDataAsStream;
 function getAllFileUploadsToComplete(fileUploads) {
     const toComplete = {};
     for (const upload of fileUploads) {
-        const { channel_id, thread_ts, initial_comment, file_id, title } = upload;
+        const { blocks, channel_id, thread_ts, initial_comment, file_id, title } = upload;
         if (file_id) {
-            const compareString = `:::${channel_id}:::${thread_ts}:::${initial_comment}`;
+            const compareString = `:::${channel_id}:::${thread_ts}:::${initial_comment}:::${JSON.stringify(blocks)}`;
             if (!Object.prototype.hasOwnProperty.call(toComplete, compareString)) {
                 toComplete[compareString] = {
                     files: [{ id: file_id, title }],
                     channel_id,
+                    blocks,
                     initial_comment,
                 };
-                if (thread_ts) {
-                    toComplete[compareString].thread_ts = upload.thread_ts;
+                if (thread_ts && channel_id) {
+                    const fileThreadDestinationArgument = {
+                        channel_id,
+                        thread_ts,
+                    };
+                    toComplete[compareString] = Object.assign(Object.assign({}, toComplete[compareString]), fileThreadDestinationArgument);
                 }
                 if ('token' in upload) {
                     toComplete[compareString].token = upload.token;
@@ -8788,7 +8824,6 @@ function getAllFileUploadsToComplete(fileUploads) {
     }
     return toComplete;
 }
-exports.getAllFileUploadsToComplete = getAllFileUploadsToComplete;
 // Validation
 /**
  * Advise to use the files.uploadV2 method over legacy files.upload method and over
@@ -8804,7 +8839,6 @@ function warnIfNotUsingFilesUploadV2(method, logger) {
     if (isTargetMethod)
         logger.info(buildGeneralFilesUploadWarning());
 }
-exports.warnIfNotUsingFilesUploadV2 = warnIfNotUsingFilesUploadV2;
 /**
  * `channels` param is supported but only when a single channel is specified.
  * @param options
@@ -8814,7 +8848,6 @@ function warnIfChannels(options, logger) {
     if (options.channels)
         logger.warn(buildChannelsWarning());
 }
-exports.warnIfChannels = warnIfChannels;
 /**
  * v1 files.upload supported `channels` parameter provided as a comma-separated
  * string of values, e.g. 'C1234,C5678'. V2 no longer supports this csv value.
@@ -8828,7 +8861,6 @@ function errorIfChannelsCsv(options) {
         throw (0, errors_1.errorWithCode)(new Error(buildMultipleChannelsErrorMsg()), errors_1.ErrorCode.FileUploadInvalidArgumentsError);
     }
 }
-exports.errorIfChannelsCsv = errorIfChannelsCsv;
 /**
  * Checks for either a file or content property and errors if missing
  * @param options
@@ -8849,7 +8881,6 @@ function errorIfInvalidOrMissingFileData(options) {
         throw (0, errors_1.errorWithCode)(new Error('content must be a string'), errors_1.ErrorCode.FileUploadInvalidArgumentsError);
     }
 }
-exports.errorIfInvalidOrMissingFileData = errorIfInvalidOrMissingFileData;
 /**
  * @param options
  * @param logger
@@ -8871,7 +8902,6 @@ function warnIfMissingOrInvalidFileNameAndDefault(options, logger) {
     }
     return filename;
 }
-exports.warnIfMissingOrInvalidFileNameAndDefault = warnIfMissingOrInvalidFileNameAndDefault;
 /**
  * `filetype` param is no longer supported and will be ignored
  * @param options
@@ -8882,59 +8912,47 @@ function warnIfLegacyFileType(options, logger) {
         logger.warn(buildLegacyFileTypeWarning());
     }
 }
-exports.warnIfLegacyFileType = warnIfLegacyFileType;
 // Validation message utilities
 function buildMissingFileIdError() {
     return 'Missing required file id for file upload completion';
 }
-exports.buildMissingFileIdError = buildMissingFileIdError;
 function buildFileSizeErrorMsg() {
     return 'There was an issue calculating the size of your file';
 }
-exports.buildFileSizeErrorMsg = buildFileSizeErrorMsg;
 function buildLegacyFileTypeWarning() {
     return ('filetype is no longer a supported field in files.uploadV2.' +
         ' \nPlease remove this field. To indicate file type, please do so via the required filename property' +
         ' using the appropriate file extension, e.g. image.png, text.txt');
 }
-exports.buildLegacyFileTypeWarning = buildLegacyFileTypeWarning;
 function buildMissingFileNameWarning() {
     return ('filename is a required field for files.uploadV2. \n For backwards compatibility and ease of migration, ' +
         'defaulting the filename. For best experience and consistent unfurl behavior, you' +
         ' should set the filename property with correct file extension, e.g. image.png, text.txt');
 }
-exports.buildMissingFileNameWarning = buildMissingFileNameWarning;
 function buildMissingExtensionWarning(filename) {
     return `filename supplied '${filename}' may be missing a proper extension. Missing extenions may result in unexpected unfurl behavior when shared`;
 }
-exports.buildMissingExtensionWarning = buildMissingExtensionWarning;
 function buildLegacyMethodWarning(method) {
     return `${method} may cause some issues like timeouts for relatively large files.`;
 }
-exports.buildLegacyMethodWarning = buildLegacyMethodWarning;
 function buildGeneralFilesUploadWarning() {
     return ('Our latest recommendation is to use client.files.uploadV2() method, ' +
         'which is mostly compatible and much stabler, instead.');
 }
-exports.buildGeneralFilesUploadWarning = buildGeneralFilesUploadWarning;
 function buildFilesUploadMissingMessage() {
     return 'Something went wrong with processing file_uploads';
 }
-exports.buildFilesUploadMissingMessage = buildFilesUploadMissingMessage;
 function buildChannelsWarning() {
     return ("Although the 'channels' parameter is still supported for smoother migration from legacy files.upload, " +
         "we recommend using the new channel_id parameter with a single str value instead (e.g. 'C12345').");
 }
-exports.buildChannelsWarning = buildChannelsWarning;
 function buildMultipleChannelsErrorMsg() {
     return 'Sharing files with multiple channels is no longer supported in v2. Share files in each channel separately instead.';
 }
-exports.buildMultipleChannelsErrorMsg = buildMultipleChannelsErrorMsg;
 function buildInvalidFilesUploadParamError() {
-    return ('You may supply file_uploads only for a single channel, comment, thread respectively. ' +
-        'Therefore, please supply any channel_id, initial_comment, thread_ts in the top-layer.');
+    return ('You may supply file_uploads only for a single channel, message, or thread respectively. ' +
+        'Therefore, please supply any channel_id, initial_comment or blocks, or thread_ts in the top-layer.');
 }
-exports.buildInvalidFilesUploadParamError = buildInvalidFilesUploadParamError;
 //# sourceMappingURL=file-upload.js.map
 
 /***/ }),
@@ -8945,6 +8963,7 @@ exports.buildInvalidFilesUploadParamError = buildInvalidFilesUploadParamError;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports["default"] = delay;
 /**
  * Build a Promise that will resolve after the specified number of milliseconds.
  * @param ms milliseconds to wait
@@ -8955,7 +8974,6 @@ function delay(ms) {
         setTimeout(resolve, ms);
     });
 }
-exports["default"] = delay;
 //# sourceMappingURL=helpers.js.map
 
 /***/ }),
@@ -9024,15 +9042,26 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getUserAgent = exports.addAppMetadata = void 0;
+exports.addAppMetadata = addAppMetadata;
+exports.getUserAgent = getUserAgent;
 const os = __importStar(__nccwpck_require__(8161));
 const node_path_1 = __nccwpck_require__(6760);
 const packageJson = __nccwpck_require__(6734);
@@ -9060,7 +9089,6 @@ const appMetadata = {};
 function addAppMetadata({ name, version }) {
     appMetadata[replaceSlashes(name)] = version;
 }
-exports.addAppMetadata = addAppMetadata;
 /**
  * Returns the current User-Agent value for instrumentation
  */
@@ -9071,7 +9099,6 @@ function getUserAgent() {
     // only prepend the appIdentifier when its not empty
     return (appIdentifier.length > 0 ? `${appIdentifier} ` : '') + baseUserAgent;
 }
-exports.getUserAgent = getUserAgent;
 //# sourceMappingURL=instrument.js.map
 
 /***/ }),
@@ -9082,7 +9109,8 @@ exports.getUserAgent = getUserAgent;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getLogger = exports.LogLevel = void 0;
+exports.LogLevel = void 0;
+exports.getLogger = getLogger;
 const logger_1 = __nccwpck_require__(9234);
 var logger_2 = __nccwpck_require__(9234);
 Object.defineProperty(exports, "LogLevel", ({ enumerable: true, get: function () { return logger_2.LogLevel; } }));
@@ -9107,7 +9135,6 @@ function getLogger(name, level, existingLogger) {
     }
     return logger;
 }
-exports.getLogger = getLogger;
 //# sourceMappingURL=logger.js.map
 
 /***/ }),
@@ -45166,7 +45193,7 @@ module.exports = axios;
 /***/ ((module) => {
 
 "use strict";
-module.exports = /*#__PURE__*/JSON.parse('{"name":"@slack/web-api","version":"7.9.1","description":"Official library for using the Slack Platform\'s Web API","author":"Slack Technologies, LLC","license":"MIT","keywords":["slack","web-api","bot","client","http","api","proxy","rate-limiting","pagination"],"main":"dist/index.js","types":"./dist/index.d.ts","files":["dist/**/*"],"engines":{"node":">= 18","npm":">= 8.6.0"},"repository":"slackapi/node-slack-sdk","homepage":"https://tools.slack.dev/node-slack-sdk/web-api","publishConfig":{"access":"public"},"bugs":{"url":"https://github.com/slackapi/node-slack-sdk/issues"},"scripts":{"prepare":"npm run build","build":"npm run build:clean && tsc","build:clean":"shx rm -rf ./dist ./coverage","lint":"npx @biomejs/biome check .","lint:fix":"npx @biomejs/biome check --write .","mocha":"mocha --config ./test/.mocharc.json \\"./src/**/*.spec.ts\\"","test":"npm run lint && npm run test:types && npm run test:integration && npm run test:unit","test:integration":"npm run build && node test/integration/commonjs-project/index.js && node test/integration/esm-project/index.mjs && npm run test:integration:ts","test:integration:ts":"cd test/integration/ts-4.7-project && npm i && npm run build","test:unit":"npm run build && c8 --config ./test/.c8rc.json npm run mocha","test:types":"tsd","watch":"npx nodemon --watch \'src\' --ext \'ts\' --exec npm run build"},"dependencies":{"@slack/logger":"^4.0.0","@slack/types":"^2.9.0","@types/node":">=18.0.0","@types/retry":"0.12.0","axios":"^1.8.3","eventemitter3":"^5.0.1","form-data":"^4.0.0","is-electron":"2.2.2","is-stream":"^2","p-queue":"^6","p-retry":"^4","retry":"^0.13.1"},"devDependencies":{"@biomejs/biome":"^1.8.3","@tsconfig/recommended":"^1","@types/busboy":"^1.5.4","@types/chai":"^4","@types/mocha":"^10","@types/sinon":"^17","busboy":"^1","c8":"^10.1.2","chai":"^4","mocha":"^11","mocha-junit-reporter":"^2.2.1","mocha-multi-reporters":"^1.5.1","nock":"^13","shx":"^0.4.0","sinon":"^20","source-map-support":"^0.5.21","ts-node":"^10","tsd":"^0.31.1","typescript":"5.3.3"},"tsd":{"directory":"test/types"}}');
+module.exports = /*#__PURE__*/JSON.parse('{"name":"@slack/web-api","version":"7.9.3","description":"Official library for using the Slack Platform\'s Web API","author":"Slack Technologies, LLC","license":"MIT","keywords":["slack","web-api","bot","client","http","api","proxy","rate-limiting","pagination"],"main":"dist/index.js","types":"./dist/index.d.ts","files":["dist/**/*"],"engines":{"node":">= 18","npm":">= 8.6.0"},"repository":"slackapi/node-slack-sdk","homepage":"https://tools.slack.dev/node-slack-sdk/web-api","publishConfig":{"access":"public"},"bugs":{"url":"https://github.com/slackapi/node-slack-sdk/issues"},"scripts":{"prepare":"npm run build","build":"npm run build:clean && tsc","build:clean":"shx rm -rf ./dist ./coverage","lint":"npx @biomejs/biome check .","lint:fix":"npx @biomejs/biome check --write .","mocha":"mocha --config ./test/.mocharc.json \\"./src/**/*.spec.ts\\"","test":"npm run lint && npm run test:types && npm run test:integration && npm run test:unit","test:integration":"npm run build && node test/integration/commonjs-project/index.js && node test/integration/esm-project/index.mjs && npm run test:integration:ts","test:integration:ts":"cd test/integration/ts-4.7-project && npm i && npm run build","test:unit":"npm run build && c8 --config ./test/.c8rc.json npm run mocha","test:types":"tsd","watch":"npx nodemon --watch \'src\' --ext \'ts\' --exec npm run build"},"dependencies":{"@slack/logger":"^4.0.0","@slack/types":"^2.9.0","@types/node":">=18.0.0","@types/retry":"0.12.0","axios":"^1.8.3","eventemitter3":"^5.0.1","form-data":"^4.0.0","is-electron":"2.2.2","is-stream":"^2","p-queue":"^6","p-retry":"^4","retry":"^0.13.1"},"devDependencies":{"@biomejs/biome":"^1.8.3","@tsconfig/recommended":"^1","@types/busboy":"^1.5.4","@types/chai":"^4","@types/mocha":"^10","@types/sinon":"^17","busboy":"^1","c8":"^10.1.2","chai":"^4","mocha":"^11","mocha-junit-reporter":"^2.2.1","mocha-multi-reporters":"^1.5.1","nock":"^14","shx":"^0.4.0","sinon":"^21","source-map-support":"^0.5.21","ts-node":"^10","tsd":"^0.32.0","typescript":"5.8.3"},"tsd":{"directory":"test/types"}}');
 
 /***/ }),
 
@@ -45211,27 +45238,79 @@ module.exports = /*#__PURE__*/JSON.parse('{"application/1d-interleaved-parityfec
 /******/ 	}
 /******/ 	
 /************************************************************************/
+/******/ 	/* webpack/runtime/compat get default export */
+/******/ 	(() => {
+/******/ 		// getDefaultExport function for compatibility with non-harmony modules
+/******/ 		__nccwpck_require__.n = (module) => {
+/******/ 			var getter = module && module.__esModule ?
+/******/ 				() => (module['default']) :
+/******/ 				() => (module);
+/******/ 			__nccwpck_require__.d(getter, { a: getter });
+/******/ 			return getter;
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/define property getters */
+/******/ 	(() => {
+/******/ 		// define getter functions for harmony exports
+/******/ 		__nccwpck_require__.d = (exports, definition) => {
+/******/ 			for(var key in definition) {
+/******/ 				if(__nccwpck_require__.o(definition, key) && !__nccwpck_require__.o(exports, key)) {
+/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 				}
+/******/ 			}
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
+/******/ 	(() => {
+/******/ 		__nccwpck_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/make namespace object */
+/******/ 	(() => {
+/******/ 		// define __esModule on exports
+/******/ 		__nccwpck_require__.r = (exports) => {
+/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 			}
+/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 		};
+/******/ 	})();
+/******/ 	
 /******/ 	/* webpack/runtime/compat */
 /******/ 	
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
 /******/ 	
 /************************************************************************/
 var __webpack_exports__ = {};
-const core = __nccwpck_require__(7484);
-const github = __nccwpck_require__(3228);
-const { WebClient } = __nccwpck_require__(5105);
-const fs = __nccwpck_require__(9896);
+// This entry need to be wrapped in an IIFE because it need to be in strict mode.
+(() => {
+"use strict";
+__nccwpck_require__.r(__webpack_exports__);
+/* harmony import */ var _actions_core__WEBPACK_IMPORTED_MODULE_0__ = __nccwpck_require__(7484);
+/* harmony import */ var _actions_core__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__nccwpck_require__.n(_actions_core__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _actions_github__WEBPACK_IMPORTED_MODULE_1__ = __nccwpck_require__(3228);
+/* harmony import */ var _actions_github__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__nccwpck_require__.n(_actions_github__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var _slack_web_api__WEBPACK_IMPORTED_MODULE_2__ = __nccwpck_require__(5105);
+/* harmony import */ var _slack_web_api__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__nccwpck_require__.n(_slack_web_api__WEBPACK_IMPORTED_MODULE_2__);
+/* harmony import */ var fs__WEBPACK_IMPORTED_MODULE_3__ = __nccwpck_require__(9896);
+/* harmony import */ var fs__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__nccwpck_require__.n(fs__WEBPACK_IMPORTED_MODULE_3__);
+
+
+
+
 
 async function run() {
   try {
-    const version = core.getInput("version");
-    const name = core.getInput("name");
-    const webhookUrl = core.getInput("Team_webhook");
-    const token = core.getInput("github-token");
-    const withAquasec = core.getBooleanInput("with-aquasec");
+    const version = (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput)("version");
+    const name = (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput)("name");
+    const webhookUrl = (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput)("Team_webhook");
+    const token = (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput)("github-token");
+    const filesInput = (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput)("files");
 
-    const octokit = github.getOctokit(token);
-    const { owner, repo } = github.context.repo;
+    const octokit = (0,_actions_github__WEBPACK_IMPORTED_MODULE_1__.getOctokit)(token);
+    const { owner, repo } = _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.repo;
 
     // Get all tags
     const { data: tags } = await octokit.rest.repos.listTags({ owner, repo });
@@ -45252,13 +45331,13 @@ async function run() {
         owner,
         repo,
         ref: `refs/tags/${version}`,
-        sha: github.context.sha,
+        sha: _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.sha,
       });
     }
 
     // Get last two tags
     if (sortedTags.length < 2) {
-      core.setFailed("Not enough tags to generate changelog");
+      (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.setFailed)("Not enough tags to generate changelog");
       return;
     }
 
@@ -45305,13 +45384,37 @@ async function run() {
     );
     console.info("Merged PRs since last tag:", JSON.stringify(mergedPRs));
 
-    const changeLog = mergedPRs
-      .map(
-        (pr) =>
-          `- ${pr.title} by @${pr.user.login} in [#${pr.number}](${pr.html_url})`
-      )
-      .join("\n");
-    console.info("Changelog:", changeLog);
+    let changeLog = "";
+    if (mergedPRs.length > 0) {
+      changeLog = mergedPRs
+        .map(
+          (pr) =>
+            `- ${pr.title} by @${pr.user.login} in [#${pr.number}](${pr.html_url})`
+        )
+        .join("\n");
+      console.info("Changelog (PRs):", changeLog);
+    } else {
+      // No merged PRs, use commit messages between the last two tags
+      const lastTagSha = sortedTags[0].commit.sha;
+      const prevTagSha = secondToLastTagSha;
+      // Get commits between prevTagSha (exclusive) and lastTagSha (inclusive)
+      const { data: commits } = await octokit.rest.repos.compareCommits({
+        owner,
+        repo,
+        base: prevTagSha,
+        head: lastTagSha,
+      });
+      changeLog = commits.commits
+        .map(
+          (commit) =>
+            `- ${commit.commit.message.split("\n")[0]} (${commit.sha.substring(
+              0,
+              7
+            )})`
+        )
+        .join("\n");
+      console.info("Changelog (commits):", changeLog);
+    }
 
     // Create release
     const { data: release } = await octokit.rest.repos.createRelease({
@@ -45324,41 +45427,52 @@ async function run() {
       prerelease: false,
     });
 
-    // Attach aquasec.txt if withAquasec is true
-    if (withAquasec && !fs.existsSync("./aquasec.txt")) {
-      core.warning("aquasec.txt file not found, skipping attachment");
-    } else if (withAquasec) {
-      try {
-        const aquasecContent = fs.readFileSync("./aquasec.txt");
-        await octokit.rest.repos.uploadReleaseAsset({
-          owner,
-          repo,
-          release_id: release.id,
-          name: "aquasec.txt",
-          data: aquasecContent,
-        });
-        console.info("aquasec.txt attached to release");
-      } catch (error) {
-        console.error("Failed to attach aquasec.txt:", error.message);
-        core.warning("Could not attach aquasec.txt to release");
+    // Attach files if provided
+    if (filesInput) {
+      // Support comma or newline separated list
+      const files = filesInput
+        .split(/[,\n]/)
+        .map((f) => f.trim())
+        .filter(Boolean);
+      for (const filePath of files) {
+        if (!(0,fs__WEBPACK_IMPORTED_MODULE_3__.existsSync)(filePath)) {
+          (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.warning)(`${filePath} not found, skipping attachment`);
+          continue;
+        }
+        try {
+          const fileContent = (0,fs__WEBPACK_IMPORTED_MODULE_3__.readFileSync)(filePath);
+          await octokit.rest.repos.uploadReleaseAsset({
+            owner,
+            repo,
+            release_id: release.id,
+            name: (__nccwpck_require__(6928).basename)(filePath),
+            data: fileContent,
+          });
+          console.info(`${filePath} attached to release`);
+        } catch (error) {
+          console.error(`Failed to attach ${filePath}:`, error.message);
+          (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.warning)(`Could not attach ${filePath} to release`);
+        }
       }
     }
 
     // Send notification if webhook is provided
     if (webhookUrl) {
-      const slack = new WebClient(webhookUrl);
+      const slack = new _slack_web_api__WEBPACK_IMPORTED_MODULE_2__.WebClient(webhookUrl);
       await slack.chat.postMessage({
         text: `New release:\n\n*${name}:${version}*\n\n${changeLog}`,
         channel: "#team-notifications",
       });
     }
   } catch (error) {
-    core.setFailed(error.message);
+    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.setFailed)(error.message);
     console.error("Full error:", error);
   }
 }
 
 run();
+
+})();
 
 module.exports = __webpack_exports__;
 /******/ })()
