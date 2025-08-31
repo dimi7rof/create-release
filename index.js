@@ -1,18 +1,18 @@
-const core = require("@actions/core");
-const github = require("@actions/github");
-const { WebClient } = require("@slack/web-api");
-const fs = require("fs");
+import { getInput, setFailed, warning } from "@actions/core";
+import { getOctokit, context } from "@actions/github";
+import { WebClient } from "@slack/web-api";
+import { existsSync, readFileSync } from "fs";
 
 async function run() {
   try {
-    const version = core.getInput("version");
-    const name = core.getInput("name");
-    const webhookUrl = core.getInput("Team_webhook");
-    const token = core.getInput("github-token");
-    const filesInput = core.getInput("files");
+    const version = getInput("version");
+    const name = getInput("name");
+    const webhookUrl = getInput("Team_webhook");
+    const token = getInput("github-token");
+    const filesInput = getInput("files");
 
-    const octokit = github.getOctokit(token);
-    const { owner, repo } = github.context.repo;
+    const octokit = getOctokit(token);
+    const { owner, repo } = context.repo;
 
     // Get all tags
     const { data: tags } = await octokit.rest.repos.listTags({ owner, repo });
@@ -33,13 +33,13 @@ async function run() {
         owner,
         repo,
         ref: `refs/tags/${version}`,
-        sha: github.context.sha,
+        sha: context.sha,
       });
     }
 
     // Get last two tags
     if (sortedTags.length < 2) {
-      core.setFailed("Not enough tags to generate changelog");
+      setFailed("Not enough tags to generate changelog");
       return;
     }
 
@@ -137,12 +137,12 @@ async function run() {
         .map((f) => f.trim())
         .filter(Boolean);
       for (const filePath of files) {
-        if (!fs.existsSync(filePath)) {
-          core.warning(`${filePath} not found, skipping attachment`);
+        if (!existsSync(filePath)) {
+          warning(`${filePath} not found, skipping attachment`);
           continue;
         }
         try {
-          const fileContent = fs.readFileSync(filePath);
+          const fileContent = readFileSync(filePath);
           await octokit.rest.repos.uploadReleaseAsset({
             owner,
             repo,
@@ -153,7 +153,7 @@ async function run() {
           console.info(`${filePath} attached to release`);
         } catch (error) {
           console.error(`Failed to attach ${filePath}:`, error.message);
-          core.warning(`Could not attach ${filePath} to release`);
+          warning(`Could not attach ${filePath} to release`);
         }
       }
     }
@@ -167,7 +167,7 @@ async function run() {
       });
     }
   } catch (error) {
-    core.setFailed(error.message);
+    setFailed(error.message);
     console.error("Full error:", error);
   }
 }
