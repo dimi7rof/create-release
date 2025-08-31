@@ -31912,20 +31912,19 @@ async function run() {
 
     // Ensure all tags have commit info (fetch if missing)
     async function enrichTagWithCommit(tag) {
-      if (tag.commit) return tag;
+      // Always fetch full commit info if missing committer/author
+      const commitSha = tag.commit ? tag.commit.sha : tag.sha || tag.name;
       try {
-        const commitSha = tag.commit ? tag.commit.sha : tag.sha || tag.name;
-        const { data: commit } = await octokit.rest.git.getCommit({
+        const { data: commit } = await octokit.rest.repos.getCommit({
           owner,
           repo,
-          commit_sha: commitSha,
+          ref: commitSha,
         });
-        return { ...tag, commit };
+        // The structure is different: wrap in a .commit property for compatibility
+        return { ...tag, commit: { ...commit.commit, sha: commit.sha } };
       } catch (e) {
         console.warn(
-          `Could not fetch commit info for tag '${tag.name}'. commit_sha: ${
-            tag.commit ? tag.commit.sha : tag.sha || tag.name
-          }`
+          `Could not fetch commit info for tag '${tag.name}'. commit_sha: ${commitSha}`
         );
         console.warn(`Error: ${e.message}`);
         return null;
