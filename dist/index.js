@@ -31935,11 +31935,13 @@ async function run() {
     // Fetch commit info for tags missing it
     const tagsWithCommits = [];
     for (const tag of tags) {
+      console.info("Tag:", JSON.stringify(tag));
       if (tag.commit) {
         tagsWithCommits.push(tag);
       } else {
         const enriched = await enrichTagWithCommit(tag);
         if (enriched) tagsWithCommits.push(enriched);
+        console.info("Enriched:", JSON.stringify(enriched));
       }
     }
 
@@ -31948,6 +31950,7 @@ async function run() {
       .map((tag) => ({ ...tag, _tagDate: getTagDate(tag) }))
       .filter((tag) => tag._tagDate)
       .sort((a, b) => b._tagDate - a._tagDate);
+    console.info("Sorted Tags:", JSON.stringify(sortedTags));
 
     const tagExists = tags.some((tag) => tag.name === version);
     console.info(`Tag ${version} exists:`, tagExists);
