@@ -13,6 +13,9 @@ inputs:
   github-token:
     description: "GitHub token"
     required: true
+  files:
+    description: "List of files to attach to the release (comma-separated)"
+    required: false
 runs:
   using: "node20"
   main: "dist/index.js"

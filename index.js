@@ -9,7 +9,7 @@ async function run() {
     const name = core.getInput("name");
     const webhookUrl = core.getInput("Team_webhook");
     const token = core.getInput("github-token");
-    const withAquasec = core.getBooleanInput("with-aquasec");
+    const filesInput = core.getInput("files");
 
     const octokit = github.getOctokit(token);
     const { owner, repo } = github.context.repo;
@@ -105,23 +105,32 @@ async function run() {
       prerelease: false,
     });
 
-    // Attach aquasec.txt if withAquasec is true
-    if (withAquasec && !fs.existsSync("./aquasec.txt")) {
-      core.warning("aquasec.txt file not found, skipping attachment");
-    } else if (withAquasec) {
-      try {
-        const aquasecContent = fs.readFileSync("./aquasec.txt");
-        await octokit.rest.repos.uploadReleaseAsset({
-          owner,
-          repo,
-          release_id: release.id,
-          name: "aquasec.txt",
-          data: aquasecContent,
-        });
-        console.info("aquasec.txt attached to release");
-      } catch (error) {
-        console.error("Failed to attach aquasec.txt:", error.message);
-        core.warning("Could not attach aquasec.txt to release");
+    // Attach files if provided
+    if (filesInput) {
+      // Support comma or newline separated list
+      const files = filesInput
+        .split(/[,\n]/)
+        .map((f) => f.trim())
+        .filter(Boolean);
+      for (const filePath of files) {
+        if (!fs.existsSync(filePath)) {
+          core.warning(`${filePath} not found, skipping attachment`);
+          continue;
+        }
+        try {
+          const fileContent = fs.readFileSync(filePath);
+          await octokit.rest.repos.uploadReleaseAsset({
+            owner,
+            repo,
+            release_id: release.id,
+            name: require("path").basename(filePath),
+            data: fileContent,
+          });
+          console.info(`${filePath} attached to release`);
+        } catch (error) {
+          console.error(`Failed to attach ${filePath}:`, error.message);
+          core.warning(`Could not attach ${filePath} to release`);
+        }
       }
     }
 

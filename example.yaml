@@ -22,3 +22,4 @@ jobs:
           version: ${{ inputs.version }}
           Team_webhook: ${{ secrets.TEAM_WEBHOOK }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          files: "aquasec.txt,CHANGELOG.md"
