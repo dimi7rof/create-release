@@ -51,16 +51,23 @@ async function run() {
       }
     }
 
-    // Fetch commit info for tags missing it
+    // Fetch commit info for tags missing it or with incomplete commit info
     const tagsWithCommits = [];
     for (const tag of tags) {
       console.info("Tag:", JSON.stringify(tag));
-      if (tag.commit) {
-        tagsWithCommits.push(tag);
-      } else {
+      let needsEnrich = false;
+      if (!tag.commit) {
+        needsEnrich = true;
+      } else if (!tag.commit.committer && !tag.commit.author) {
+        // commit property exists but is incomplete
+        needsEnrich = true;
+      }
+      if (needsEnrich) {
         const enriched = await enrichTagWithCommit(tag);
         if (enriched) tagsWithCommits.push(enriched);
         console.info("Enriched:", JSON.stringify(enriched));
+      } else {
+        tagsWithCommits.push(tag);
       }
     }
 
