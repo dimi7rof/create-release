@@ -1,11 +1,9 @@
 name: Build and Bundle Action
 
 on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "Tag to push after build (e.g., v1)"
-        required: true
+  push:
+    tags:
+      - "*"
 
 jobs:
   build:
@@ -34,8 +32,3 @@ jobs:
           git add dist
           git commit -m "Build action on push" || echo "No changes to commit"
           git push origin main
-
-      - name: Create and push tag
-        run: |
-          git tag ${{ github.event.inputs.tag }}
-          git push origin ${{ github.event.inputs.tag }}
